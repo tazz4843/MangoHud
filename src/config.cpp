@@ -11,6 +11,8 @@
 #include "string_utils.h"
 #include "hud_elements.h"
 
+static const char *mangohud_dir = "/MangoHud/";
+
 static void parseConfigLine(std::string line, std::unordered_map<std::string, std::string>& options) {
     std::string param, value;
 
@@ -61,9 +63,18 @@ std::string get_program_name() {
     return basename;
 }
 
-static void enumerate_config_files(std::vector<std::string>& paths) {
-    static const char *mangohud_dir = "/MangoHud/";
+static std::string get_main_config_file() {
+    const std::string config_dir = get_config_dir();
 
+    if (config_dir.empty()) {
+        // If we can't find 'HOME' just abandon hope.
+        return {};
+    }
+
+    return config_dir + mangohud_dir + "MangoHud.conf";
+}
+
+static void enumerate_config_files(std::vector<std::string>& paths) {
     const std::string data_dir = get_data_dir();
     const std::string config_dir = get_config_dir();
 
@@ -73,8 +84,6 @@ static void enumerate_config_files(std::vector<std::string>& paths) {
         // If we can't find 'HOME' just abandon hope.
         return;
     }
-
-    paths.push_back(config_dir + mangohud_dir + "MangoHud.conf");
 
 #ifdef _WIN32
     paths.push_back("C:\\mangohud\\MangoHud.conf");
@@ -95,7 +104,25 @@ static void enumerate_config_files(std::vector<std::string>& paths) {
      }
 }
 
-void parseConfigFile(overlay_params& params) {
+static bool parseConfigFile(const std::string& p, overlay_params& params) {
+    std::string line;
+    std::ifstream stream(p);
+    if (!stream.good()) {
+        // printing just so user has an idea of possible configs
+        SPDLOG_INFO("skipping config: '{}' [ not found ]", p);
+        return false;
+    }
+
+    stream.imbue(std::locale::classic());
+    SPDLOG_INFO("parsing config: '{}'", p);
+    while (std::getline(stream, line))
+        parseConfigLine(line, params.options);
+
+    params.config_file_path = p;
+    return true;
+}
+
+void parseConfigFiles(overlay_params& params) {
     HUDElements.options.clear();
     params.options.clear();
     std::vector<std::string> paths;
@@ -103,25 +130,14 @@ void parseConfigFile(overlay_params& params) {
 
     if (cfg_file)
         paths.push_back(cfg_file);
-    else
+    else {
+        parseConfigFile(get_main_config_file(), params);
         enumerate_config_files(paths);
+    }
 
     std::string line;
     for (auto p = paths.rbegin(); p != paths.rend(); p++) {
-        std::ifstream stream(*p);
-        if (!stream.good()) {
-            // printing just so user has an idea of possible configs
-            SPDLOG_INFO("skipping config: '{}' [ not found ]", *p);
-            continue;
-        }
-
-        stream.imbue(std::locale::classic());
-        SPDLOG_INFO("parsing config: '{}'", *p);
-        while (std::getline(stream, line))
-        {
-            parseConfigLine(line, params.options);
-        }
-        params.config_file_path = *p;
-        return;
+        if (parseConfigFile(*p, params))
+            return;
     }
 }
