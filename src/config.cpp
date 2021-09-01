@@ -13,7 +13,7 @@
 
 static const char *mangohud_dir = "/MangoHud/";
 
-static void parseConfigLine(std::string line, std::unordered_map<std::string, std::string>& options) {
+static void parseConfigLine(std::string line, std::unordered_map<std::string, std::string>& options, bool per_game = false) {
     std::string param, value;
 
     if (line.find("#") != std::string::npos)
@@ -29,6 +29,7 @@ static void parseConfigLine(std::string line, std::unordered_map<std::string, st
     trim(param);
     trim(value);
     if (!param.empty()){
+        // if (per_game) do_something_different();
         HUDElements.options.push_back({param, value});
         options[param] = value;
     }
@@ -104,7 +105,7 @@ static void enumerate_config_files(std::vector<std::string>& paths) {
      }
 }
 
-static bool parseConfigFile(const std::string& p, overlay_params& params) {
+static bool parseConfigFile(const std::string& p, overlay_params& params, bool per_game = false) {
     std::string line;
     std::ifstream stream(p);
     if (!stream.good()) {
@@ -116,7 +117,7 @@ static bool parseConfigFile(const std::string& p, overlay_params& params) {
     stream.imbue(std::locale::classic());
     SPDLOG_INFO("parsing config: '{}'", p);
     while (std::getline(stream, line))
-        parseConfigLine(line, params.options);
+        parseConfigLine(line, params.options, per_game);
 
     params.config_file_path = p;
     return true;
@@ -137,7 +138,7 @@ void parseConfigFiles(overlay_params& params) {
 
     std::string line;
     for (auto p = paths.rbegin(); p != paths.rend(); p++) {
-        if (parseConfigFile(*p, params))
+        if (parseConfigFile(*p, params, true))
             return;
     }
 }
