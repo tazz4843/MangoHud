@@ -10,7 +10,7 @@ static bool init_intel = false;
 struct gpuInfo gpu_info_intel {};
 static char drm_dev[10];
 
-static void intelGpuThread(bool runtime){
+static void intelGpuThread(){
     init_intel = true;
     static char stdout_buffer[4096];
 
