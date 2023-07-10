@@ -51,7 +51,6 @@ bool steam_focused = false;
 vector<float> frametime_data(200,0.f);
 int fan_speed;
 fcatoverlay fcatstatus;
-std::string drm_dev;
 
 void init_spdlog()
 {
